@@ -119,7 +119,13 @@
             letter-spacing: 10px;
             pointer-events: none; /* 避免文字擋住點擊 */
         }
-
+/* 強制封鎖特定區域的所有手機原生觸控行為（包含縮放與滑動） */
+        #hitArea {
+            touch-action: none !important;
+            -webkit-touch-callout: none; /* 禁用長按選單 */
+            -webkit-user-select: none;   /* 禁用文字選取 */
+            user-select: none;
+        }
     </style>
 </head>
 <body class="flex flex-col h-full min-h-[600px] w-full select-none">
