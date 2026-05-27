@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>線上出氣包 - 釋放你的壓力！</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a202c; /* Tailwind gray-900 */
+            color: white;
+            overflow: hidden; /* Prevent scrolling during action */
+            touch-action: manipulation; /* Disable double-tap to zoom */
+        }
+
+        /* 隱藏不應顯示的步驟 */
+        .step-hidden {
+            display: none !important;
+        }
+
+        /* 沙包搖晃動畫 */
+        @keyframes shake {
+            0% { transform: rotate(0deg) translate(0, 0); }
+            25% { transform: rotate(5deg) translate(5px, -5px); }
+            50% { transform: rotate(0deg) translate(0, 0); }
+            75% { transform: rotate(-5deg) translate(-5px, -5px); }
+            100% { transform: rotate(0deg) translate(0, 0); }
+        }
+        .punching-bag.hit {
+            animation: shake 0.2s ease-in-out;
+        }
+
+        /* 攻擊特效動畫 (如火花、星星) */
+        @keyframes pop {
+            0% { transform: scale(0.5) translate(-50%, -50%); opacity: 1; }
+            100% { transform: scale(2) translate(-50%, -50%); opacity: 0; }
+        }
+        .hit-effect {
+            position: absolute;
+            pointer-events: none;
+            font-size: 2rem;
+            color: #fbbf24; /* amber-400 */
+            animation: pop 0.4s ease-out forwards;
+            z-index: 50;
+        }
+
+        /* 武器擊出動畫 */
+        @keyframes strike-left {
+            0% { transform: translate(-100%, 100%) scale(0.8) rotate(-20deg); opacity: 0; }
+            50% { transform: translate(10%, -10%) scale(1.2) rotate(10deg); opacity: 1; }
+            100% { transform: translate(-100%, 100%) scale(0.8) rotate(-20deg); opacity: 0; }
+        }
+        @keyframes strike-right {
+            0% { transform: translate(100%, 100%) scale(0.8) rotate(20deg); opacity: 0; }
+            50% { transform: translate(-10%, -10%) scale(1.2) rotate(-10deg); opacity: 1; }
+            100% { transform: translate(100%, 100%) scale(0.8) rotate(20deg); opacity: 0; }
+        }
+        
+        .weapon-left, .weapon-right {
+            position: absolute;
+            bottom: -50px;
+            font-size: 8rem; /* 預設大小 */
+            opacity: 0;
+            pointer-events: none;
+            z-index: 40;
+            filter: drop-shadow(0 10px 8px rgb(0 0 0 / 0.5));
+        }
+
+        .weapon-left { left: -20px; }
+        .weapon-right { right: -20px; transform: scaleX(-1); }
+
+        .strike-anim-left { animation: strike-left 0.15s ease-in-out forwards; }
+        .strike-anim-right { animation: strike-right 0.15s ease-in-out forwards; }
+
+        /* 行動版武器稍微縮小 */
+        @media (max-width: 640px) {
+            .weapon-left, .weapon-right { font-size: 6rem; }
+        }
+
+        /* 沙包本體樣式 */
+        .bag-container {
+            position: relative;
+            width: 200px;
+            height: 400px;
+            margin: 0 auto;
+            transform-origin: top center; /* 讓沙包從頂部搖晃 */
+        }
+        .bag-chain {
+            width: 4px;
+            height: 50px;
+            background: linear-gradient(90deg, #9ca3af, #d1d5db, #9ca3af);
+            margin: 0 auto;
+            position: relative;
+        }
+        .bag-body {
+            width: 100%;
+            height: 350px;
+            background: radial-gradient(circle at 30% 30%, #ef4444, #991b1b); /* 紅色立體感 */
+            border-radius: 100px 100px 80px 80px / 50px 50px 150px 150px;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.5), 0 20px 25px -5px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        /* 沙包上的文字 */
+        .target-text-display {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 10px;
+            pointer-events: none; /* 避免文字擋住點擊 */
+        }
+
+    </style>
+</head>
+<body class="flex flex-col h-full min-h-[600px] w-full select-none">
+
+    <!-- 步驟一：輸入目標 -->
+    <div id="step1" class="step-container flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full border border-gray-700">
+            <h1 class="text-3xl font-black text-center mb-2 text-red-500">線上出氣包</h1>
+            <p class="text-gray-400 text-center mb-8">把討厭的人事物寫下來，準備痛扁一頓！</p>
+            
+            <div class="mb-6">
+                <label for="targetInput" class="block text-sm font-medium text-gray-300 mb-2">你要發洩的對象/事項：</label>
+                <input type="text" id="targetInput" placeholder="例如：慣老闆、改需求、前任..." 
+                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition text-lg"
+                       maxlength="10">
+                <p class="text-xs text-gray-500 mt-2 text-right">最多 10 個字</p>
+            </div>
+            
+            <button id="btnNextToStep2" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 active:translate-y-0 text-xl">
+                下一步 <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 步驟二：選擇武器 -->
+    <div id="step2" class="step-container step-hidden flex-1 flex flex-col items-center justify-center p-6 w-full max-w-lg mx-auto">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full border border-gray-700">
+            <h2 class="text-2xl font-black text-center mb-6 text-yellow-500">選擇你的武器</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                <!-- 武器 1: 拳擊手套 -->
+                <button class="weapon-select-btn flex flex-col items-center justify-center p-4 bg-gray-700 rounded-xl border-2 border-transparent hover:border-red-500 hover:bg-gray-600 transition group" data-weapon="🥊">
+                    <span class="text-6xl mb-2 group-hover:scale-110 transition-transform">🥊</span>
+                    <span class="font-bold text-gray-200">拳擊手套</span>
+                </button>
+                <!-- 武器 2: 指虎 (用拳頭代替) -->
+                <button class="weapon-select-btn flex flex-col items-center justify-center p-4 bg-gray-700 rounded-xl border-2 border-transparent hover:border-red-500 hover:bg-gray-600 transition group" data-weapon="✊">
+                    <span class="text-6xl mb-2 group-hover:scale-110 transition-transform">✊</span>
+                    <span class="font-bold text-gray-200">鐵拳</span>
+                </button>
+                <!-- 武器 3: 平底鍋 -->
+                <button class="weapon-select-btn flex flex-col items-center justify-center p-4 bg-gray-700 rounded-xl border-2 border-transparent hover:border-red-500 hover:bg-gray-600 transition group" data-weapon="🍳">
+                    <span class="text-6xl mb-2 group-hover:scale-110 transition-transform">🍳</span>
+                    <span class="font-bold text-gray-200">平底鍋</span>
+                </button>
+            </div>
+            
+            <button id="btnBackToStep1" class="w-full text-gray-400 hover:text-white py-2 transition mb-2">
+                返回修改對象
+            </button>
+        </div>
+    </div>
+
+    <!-- 步驟三：戰鬥畫面 -->
+    <div id="step3" class="step-container step-hidden flex-1 flex flex-col relative w-full h-full cursor-crosshair">
+        
+        <!-- 頂部資訊列 -->
+        <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-10 bg-gradient-to-b from-gray-900 to-transparent">
+            <div class="text-xl font-bold text-red-500 bg-gray-900/80 px-4 py-2 rounded-full border border-red-900 shadow-lg">
+                COMBO: <span id="comboCount" class="text-3xl text-yellow-400">0</span>
+            </div>
+            <button id="btnRestart" class="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg transition border border-gray-600">
+                <i class="fas fa-redo"></i> 重來
+            </button>
+        </div>
+
+        <!-- 提示文字 -->
+        <div class="absolute top-24 left-0 w-full text-center z-10 pointer-events-none">
+            <p id="actionHint" class="text-gray-400 text-lg animate-pulse font-bold bg-black/50 inline-block px-4 py-1 rounded-full backdrop-blur-sm">
+                狂點螢幕，開始發洩！
+            </p>
+        </div>
+
+        <!-- 點擊熱區 (佔滿剩餘畫面) -->
+        <div id="hitArea" class="flex-1 flex items-center justify-center relative w-full h-full">
+            
+            <!-- 沙包本體 -->
+            <div class="bag-container punching-bag" id="punchingBag">
+                <!-- 鏈子 -->
+                <div class="bag-chain"></div>
+                <div class="bag-chain" style="position:absolute; top:0; left:20%; transform:rotate(15deg)"></div>
+                <div class="bag-chain" style="position:absolute; top:0; right:20%; transform:rotate(-15deg)"></div>
+                
+                <!-- 沙包 -->
+                <div class="bag-body">
+                    <!-- 使用者輸入的文字會顯示在這裡 -->
+                    <div id="targetTextDisplay" class="target-text-display">目標</div>
+                    
+                    <!-- 陰影/高光增加立體感 -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-white/10 pointer-events-none"></div>
+                </div>
+            </div>
+
+            <!-- 特效容器 -->
+            <div id="effectsContainer" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+
+            <!-- 動畫武器 (左/右) -->
+            <div id="weaponLeft" class="weapon-left">🥊</div>
+            <div id="weaponRight" class="weapon-right">🥊</div>
+        </div>
+    </div>
+
+    <!-- 音效元素 (已替換為 Mixkit 穩定連結，若要自訂請參考 Dropbox 方法) -->
+    <audio id="soundPunch1" preload="auto">
+        <source src="Punch - Sound Effect (HD)" type="audio/mpeg">
+    </audio>
+    <audio id="soundPunch2" preload="auto">
+        <source src="Punch - Sound Effect (HD)" type="audio/mpeg">
+    </audio>
+    <audio id="soundPan" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2764/2764-preview.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // DOM 元素
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        
+        const targetInput = document.getElementById('targetInput');
+        const btnNextToStep2 = document.getElementById('btnNextToStep2');
+        const btnBackToStep1 = document.getElementById('btnBackToStep1');
+        const weaponSelectBtns = document.querySelectorAll('.weapon-select-btn');
+        
+        const targetTextDisplay = document.getElementById('targetTextDisplay');
+        const hitArea = document.getElementById('hitArea');
+        const punchingBag = document.getElementById('punchingBag');
+        const comboCountEl = document.getElementById('comboCount');
+        const actionHint = document.getElementById('actionHint');
+        const btnRestart = document.getElementById('btnRestart');
+        
+        const weaponLeft = document.getElementById('weaponLeft');
+        const weaponRight = document.getElementById('weaponRight');
+        const effectsContainer = document.getElementById('effectsContainer');
+
+        // 音效
+        const sounds = {
+            '🥊': [document.getElementById('soundPunch1'), document.getElementById('soundPunch2')],
+            '✊': [document.getElementById('soundPunch1'), document.getElementById('soundPunch2')],
+            '🍳': [document.getElementById('soundPan')]
+        };
+
+        // 狀態變數
+        let targetText = '';
+        let selectedWeapon = '🥊';
+        let combo = 0;
+        let isLeftStrike = true; // 交替左右手
+        let comboTimer;
+
+        // --- 流程控制 ---
+
+        // 步驟1 -> 步驟2
+        btnNextToStep2.addEventListener('click', () => {
+            targetText = targetInput.value.trim();
+            if (!targetText) {
+                targetText = '無名氏'; // 預設值
+            }
+            targetTextDisplay.textContent = targetText;
+            
+            step1.classList.add('step-hidden');
+            step2.classList.remove('step-hidden');
+        });
+
+        // 允許按 Enter 鍵進入下一步
+        targetInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                btnNextToStep2.click();
+            }
+        });
+
+        // 步驟2 返回 步驟1
+        btnBackToStep1.addEventListener('click', () => {
+            step2.classList.add('step-hidden');
+            step1.classList.remove('step-hidden');
+        });
+
+        // 步驟2 -> 步驟3 (選擇武器並開始)
+        weaponSelectBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // 獲取選擇的武器 Emoji
+                selectedWeapon = e.currentTarget.dataset.weapon;
+                
+                // 設定戰鬥畫面的武器
+                weaponLeft.textContent = selectedWeapon;
+                weaponRight.textContent = selectedWeapon;
+                
+                // 切換畫面
+                step2.classList.add('step-hidden');
+                step3.classList.remove('step-hidden');
+                
+                // 重置狀態
+                resetGame();
+            });
+        });
+
+        // 重新開始
+        btnRestart.addEventListener('click', () => {
+            step3.classList.add('step-hidden');
+            step1.classList.remove('step-hidden');
+            targetInput.value = '';
+            targetInput.focus();
+        });
+
+
+        // --- 戰鬥互動邏輯 ---
+        
+        function resetGame() {
+            combo = 0;
+            updateCombo();
+            actionHint.style.opacity = '1'; // 顯示提示
+            effectsContainer.innerHTML = ''; // 清除特效
+        }
+
+        function updateCombo() {
+            comboCountEl.textContent = combo;
+            // Combo 越高，數字越大且顏色改變
+            if (combo > 50) {
+                comboCountEl.className = 'text-5xl text-purple-500 animate-bounce';
+            } else if (combo > 20) {
+                comboCountEl.className = 'text-4xl text-red-500';
+            } else {
+                comboCountEl.className = 'text-3xl text-yellow-400';
+            }
+        }
+
+        function playSound() {
+            const weaponSounds = sounds[selectedWeapon] || sounds['🥊'];
+            // 隨機選一個該武器的音效
+            const sound = weaponSounds[Math.floor(Math.random() * weaponSounds.length)];
+            
+            // 重置音效以便可以快速重複播放
+            sound.currentTime = 0;
+            // 稍微調高音量以凸顯重擊感
+            sound.volume = 0.8;
+            
+            // 處理瀏覽器自動播放政策可能的錯誤
+            let playPromise = sound.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("音效播放被阻止，通常是因為使用者尚未與頁面互動。", error);
+                });
+            }
+        }
+
+        function triggerVibration() {
+            // 檢查裝置是否支援震動 API
+            if (navigator.vibrate) {
+                // 加長一點震動時間配合重擊
+                navigator.vibrate(80);
+            }
+        }
+
+        function createHitEffect(x, y) {
+            const effect = document.createElement('div');
+            effect.className = 'hit-effect';
+            // 隨機選擇特效符號
+            const effects = ['💥', '💢', '✨', '⚡'];
+            effect.textContent = effects[Math.floor(Math.random() * effects.length)];
+            
+            // 設定位置
+            effect.style.left = `${x}px`;
+            effect.style.top = `${y}px`;
+            
+            effectsContainer.appendChild(effect);
+            
+            // 動畫結束後移除元素
+            setTimeout(() => {
+                effect.remove();
+            }, 400);
+        }
+
+        function triggerWeaponAnimation() {
+            // 移除舊的動畫 class
+            weaponLeft.classList.remove('strike-anim-left');
+            weaponRight.classList.remove('strike-anim-right');
+            
+            // 強制重繪以重新觸發動畫
+            void weaponLeft.offsetWidth;
+            void weaponRight.offsetWidth;
+
+            if (isLeftStrike) {
+                weaponLeft.classList.add('strike-anim-left');
+            } else {
+                weaponRight.classList.add('strike-anim-right');
+            }
+            // 交替
+            isLeftStrike = !isLeftStrike;
+        }
+
+        function triggerBagShake() {
+            punchingBag.classList.remove('hit');
+            void punchingBag.offsetWidth; // 強制重繪
+            punchingBag.classList.add('hit');
+        }
+
+        // 處理點擊/觸控事件
+        function handleHit(e) {
+            // 隱藏提示文字
+            if (combo === 0) {
+                actionHint.style.opacity = '0';
+            }
+
+            // 增加 Combo
+            combo++;
+            updateCombo();
+
+            // 如果一段時間沒打，Combo 歸零
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                combo = 0;
+                updateCombo();
+            }, 2000); // 2秒沒打就斷 Combo
+
+            // 播放音效與震動
+            playSound();
+            triggerVibration();
+
+            // 觸發沙包搖晃
+            triggerBagShake();
+
+            // 觸發武器揮擊動畫
+            triggerWeaponAnimation();
+
+            // 獲取點擊座標來產生視覺特效
+            let clientX, clientY;
+            if (e.type === 'touchstart') {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            // 相對容器的座標
+            const rect = hitArea.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            createHitEffect(x, y);
+            
+            // 防止觸控裝置觸發兩次 (mousedown 和 touchstart)
+            if(e.cancelable) e.preventDefault(); 
+        }
+
+        // 綁定事件：使用 pointerdown 涵蓋滑鼠點擊和觸控
+        hitArea.addEventListener('pointerdown', handleHit);
+        
+        // 防止拖曳造成選取文字
+        hitArea.addEventListener('selectstart', (e) => e.preventDefault());
+
+    </script>
+</body>
+</html>
