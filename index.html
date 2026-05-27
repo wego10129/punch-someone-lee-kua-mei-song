@@ -352,21 +352,21 @@
             }
         }
 
-        function playSound() {
+function playSound() {
             const weaponSounds = sounds[selectedWeapon] || sounds['🥊'];
             // 隨機選一個該武器的音效
-            const sound = weaponSounds[Math.floor(Math.random() * weaponSounds.length)];
+            const originalSound = weaponSounds[Math.floor(Math.random() * weaponSounds.length)];
             
-            // 重置音效以便可以快速重複播放
-            sound.currentTime = 0;
-            // 稍微調高音量以凸顯重擊感
-            sound.volume = 0.8;
+            // 【關鍵優化】：每次打擊都複製一個獨立的音效節點 (Clone)
+            // 這樣可以完全消除 currentTime=0 帶來的讀取延遲，且允許多個聲音同時重疊播放
+            const clonedSound = originalSound.cloneNode();
+            clonedSound.volume = 0.8;
             
-            // 處理瀏覽器自動播放政策可能的錯誤
-            let playPromise = sound.play();
+            // 播放這個複製出來的音效
+            let playPromise = clonedSound.play();
             if (playPromise !== undefined) {
                 playPromise.catch(error => {
-                    console.log("音效播放被阻止，通常是因為使用者尚未與頁面互動。", error);
+                    console.log("音效播放被阻止，請先點擊畫面互動。", error);
                 });
             }
         }
