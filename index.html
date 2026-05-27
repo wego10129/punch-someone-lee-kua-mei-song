@@ -359,7 +359,7 @@ function playSound() {
             
             // 【關鍵優化】：每次打擊都複製一個獨立的音效節點 (Clone)
             // 這樣可以完全消除 currentTime=0 帶來的讀取延遲，且允許多個聲音同時重疊播放
-            const clonedSound = originalSound.cloneNode();
+            const clonedSound = originalSound.cloneNode(true);
             clonedSound.volume = 0.8;
             
             // 播放這個複製出來的音效
